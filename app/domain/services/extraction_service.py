@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from app.ai.extraction.pipeline import run_extraction
+from app.ai.guardrail import run_guardrail
 from app.domain.errors import DomainError, NotAuthorizedError
 from app.domain.permissions import require_permission
 from app.domain.roles import Domain, Role
@@ -115,13 +116,22 @@ def run_extraction_and_update(
     taken in the EXTRACTING window (there isn't one — no route accepts an
     EXTRACTING document as input to anything but a read).
 
-    custom_prompt: passed straight to run_extraction — see that function and
-    EXTRACTION_PROMPT for how it's appended to the model call. None means
-    "use the default extraction instructions only," which is also what an
-    empty/whitespace-only value collapses to before it ever reaches here."""
+    custom_prompt: passed through the same scope guardrail used for chat
+    (run_guardrail) before it ever reaches run_extraction — an uploader hint
+    that isn't actually about procurement/reading the document is dropped
+    (custom_prompt reset to None) rather than forwarded into the extraction
+    LLM call. This never blocks the upload itself, only what gets appended
+    to the model prompt; see run_extraction/EXTRACTION_PROMPT for how a
+    surviving custom_prompt is appended. None means "use the default
+    extraction instructions only," which is also what an empty/
+    whitespace-only value collapses to before it ever reaches here."""
     doc = documents_repo.get_unscoped(document_id)
 
     try:
+        if custom_prompt:
+            guardrail = run_guardrail(custom_prompt, [])
+            if guardrail.category != "in_scope":
+                custom_prompt = None
         result = run_extraction(pdf_path, custom_prompt=custom_prompt)
     except Exception as e:  # noqa: BLE001 — any failure here must land as EXTRACTION_FAILED, not a crash
         validate_transition(doc.document_type, doc.status, "EXTRACTION_FAILED", str(e))
