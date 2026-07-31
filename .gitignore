@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+app/uploads/*
+!app/uploads/.gitkeep
+data/*.json
+data/*.jsonl
+data/*.tmp
+data/*.lock
+!data/.gitkeep
+.pytest_cache/

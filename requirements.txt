@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+pyjwt
+passlib[bcrypt]
+bcrypt<4.1  # passlib 1.7.4 (last release) breaks against bcrypt>=4.1's removed __about__ module
+google-genai
+python-multipart
+filelock
+pytesseract
+pymupdf
+pillow
